@@ -36,7 +36,14 @@ namespace ASRRecordDemo
                     .WithVadEos(5000)  //将静默检测超时设置为5s
                     .UseError((sender, e) =>
                     {
-                        Console.WriteLine("错误：" + e.Message);
+                        if (e.Code == ResultCode.Disconnect)
+                        {
+                            Console.WriteLine($"[{DateTime.Now.ToString()}]->开启新的识别回话。");
+                        }
+                        else
+                        {
+                            Console.WriteLine("错误：" + e.Message);
+                        }
                     })
                     .UseMessage((sender, e) =>
                     {
@@ -55,18 +62,13 @@ namespace ASRRecordDemo
                 {
                     byte[] buffer = SubArray(a.Buffer, 0, a.BytesRecorded);
                     iat.Convert(buffer);
-
-                    if (sw.ElapsedMilliseconds / 1000 > 60)
-                    {
-                        wave.StopRecording();
-                    }
                 };
                 wave.RecordingStopped += (s, a) =>
                 {
-                    Console.WriteLine("退出...");
+                    Console.WriteLine($"[{DateTime.Now.ToString()}]->结束录音...");
                 };
-                Console.WriteLine("开始识别...");
                 wave.StartRecording();
+                Console.WriteLine($"[{DateTime.Now.ToString()}]->开始识别...");
 
                 //注册退出事件
                 Console.CancelKeyPress += (object sender, ConsoleCancelEventArgs eventArgs) =>
@@ -74,17 +76,15 @@ namespace ASRRecordDemo
                     bool state = iat.Stop();
                     if (state)
                     {
-                        Console.WriteLine("语音识别已退出...");
+                        Console.WriteLine($"[{DateTime.Now.ToString()}]->语音识别已结束...");
                     }
                     wave.StopRecording();
-
-                    Console.WriteLine("`C");
                 };
 
                 //等待识别开始
                 while (iat.Status != ServiceStatus.Running)
                 {
-                    Thread.Sleep(10);
+                    Thread.Sleep(5);
                 }
 
                 #endregion
@@ -92,11 +92,10 @@ namespace ASRRecordDemo
                 //等待本次会话结束
                 while (iat.Status != ServiceStatus.Stopped)
                 {
-                    Thread.Sleep(10);  //注意：此处不能使用Task.Delay();
+                    Thread.Sleep(5);  //注意：此处不能使用Task.Delay();
                 }
-                wave.Dispose();
                 sw.Stop();
-                Console.WriteLine($"总共花费{Math.Round(sw.Elapsed.TotalSeconds, 2)}秒。");
+                Console.WriteLine($"[{DateTime.Now.ToString()}]->总共花费{Math.Round(sw.Elapsed.TotalSeconds, 2)}秒。");
             }
             catch (Exception ex)
             {
